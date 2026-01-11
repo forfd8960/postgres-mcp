@@ -156,6 +156,104 @@ class TestSQLValidator:
         is_valid, _ = self.validator.validate(sql)
         assert is_valid is False
 
+    def test_reject_union_injection(self):
+        """Test UNION-based SQL injection rejection."""
+        sql = "SELECT * FROM users UNION SELECT * FROM users; DROP TABLE users;"
+        is_valid, _ = self.validator.validate(sql)
+        assert is_valid is False
+
+    def test_reject_comment_embedded_drop(self):
+        """Test rejection of DROP hidden in comment within statement."""
+        sql = "SELECT * /* DROP */ FROM users"
+        is_valid, _ = self.validator.validate(sql)
+        assert is_valid is False
+
+    def test_reject_semicolon_injection(self):
+        """Test semicolon-separated statement injection rejection."""
+        sql = "SELECT * FROM users; DELETE FROM users;"
+        is_valid, _ = self.validator.validate(sql)
+        assert is_valid is False
+
+    def test_reject_nested_cte_injection(self):
+        """Test nested CTE injection rejection."""
+        sql = "WITH a AS (SELECT 1), b AS (SELECT * FROM users DROP TABLE users) SELECT * FROM a"
+        is_valid, _ = self.validator.validate(sql)
+        assert is_valid is False
+
+    def test_select_from_pg_catalog(self):
+        """Test pg_catalog table access rejection."""
+        sql = "SELECT * FROM pg_catalog.pg_tables"
+        is_valid, _ = self.validator.validate(sql)
+        assert is_valid is False
+
+    def test_select_from_information_schema(self):
+        """Test information_schema access rejection."""
+        sql = "SELECT * FROM information_schema.columns"
+        is_valid, _ = self.validator.validate(sql)
+        assert is_valid is False
+
+    def test_reject_with_delete(self):
+        """Test CTE with DELETE rejection."""
+        sql = "WITH x AS (DELETE FROM users) SELECT * FROM x"
+        is_valid, _ = self.validator.validate(sql)
+        assert is_valid is False
+
+    def test_reject_with_insert(self):
+        """Test CTE with INSERT rejection."""
+        sql = "WITH x AS (INSERT INTO users SELECT * FROM users) SELECT * FROM x"
+        is_valid, _ = self.validator.validate(sql)
+        assert is_valid is False
+
+    def test_reject_with_update(self):
+        """Test CTE with UPDATE rejection."""
+        sql = "WITH x AS (UPDATE users SET name='x') SELECT * FROM x"
+        is_valid, _ = self.validator.validate(sql)
+        assert is_valid is False
+
+    def test_reject_alter_sequence(self):
+        """Test ALTER SEQUENCE rejection."""
+        sql = "ALTER SEQUENCE users_id_seq RESTART WITH 1000"
+        is_valid, _ = self.validator.validate(sql)
+        assert is_valid is False
+
+    def test_reject_copy(self):
+        """Test COPY statement rejection."""
+        sql = "COPY users TO '/tmp/data.csv'"
+        is_valid, _ = self.validator.validate(sql)
+        assert is_valid is False
+
+    def test_reject_vacuum(self):
+        """Test VACUUM statement rejection."""
+        sql = "VACUUM ANALYZE users"
+        is_valid, _ = self.validator.validate(sql)
+        assert is_valid is False
+
+    def test_reject_load(self):
+        """Test LOAD statement rejection."""
+        sql = "LOAD '/lib/libc.so.6'"
+        is_valid, _ = self.validator.validate(sql)
+        assert is_valid is False
+
+    def test_reject_do_block(self):
+        """Test DO block rejection."""
+        sql = "DO $$ BEGIN PERFORM pg_sleep(0); END $$"
+        is_valid, _ = self.validator.validate(sql)
+        assert is_valid is False
+
+    def test_select_with_window_functions(self):
+        """Test SELECT with window functions is allowed."""
+        sql = "SELECT id, name, ROW_NUMBER() OVER (PARTITION BY department ORDER BY salary DESC) as rank FROM employees"
+        is_valid, error = self.validator.validate(sql)
+        assert is_valid is True
+        assert error is None
+
+    def test_select_with_distinct_on(self):
+        """Test SELECT with DISTINCT ON is allowed."""
+        sql = "SELECT DISTINCT ON (id) id, name, created_at FROM users ORDER BY id, created_at"
+        is_valid, error = self.validator.validate(sql)
+        assert is_valid is True
+        assert error is None
+
     # === Comment removal tests ===
 
     def test_comment_removal(self):

@@ -14,4 +14,6 @@
 
 ## 实现
 
-根据 ./specs/0003-pg-mcp-impl-plan.md 和 ./specs/w5/0002-pg-mcp-design.md 文档，使用 sub agent 完整实现 pg-mcp phase 0-4。代码放在 ./w5/pg-mcp 下。
+根据 ./specs/0003-pg-mcp-impl-plan.md 和 ./specs/0002-pg-mcp-design.md 文档，使用 sub agent 完整实现 pg-mcp phase 0-4。代码放在 当前目录下.
+
+根据 ./specs/0003-pg-mcp-impl-plan.md 和 ./specs/0002-pg-mcp-design.md 文档，使用 sub agent 完整实现 pg-mcp phase 5。代码放在 当前目录下.

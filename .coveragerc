@@ -1,0 +1,23 @@
+[run]
+source = src
+omit =
+    */tests/*
+    */.venv/*
+    */venv/*
+    src/__main__.py
+    src/main.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError
+    if TYPE_CHECKING:
+    @abstractmethod
+
+[html]
+directory = coverage_html
+show_missing = true
+
+[xml]
+output = coverage.xml
