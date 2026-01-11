@@ -1,8 +1,8 @@
 # src/models/schema.py
 """Schema-related data models."""
 
-from pydantic import BaseModel
-from typing import Optional, list
+from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional
 from enum import Enum
 
 
@@ -46,9 +46,11 @@ class TableInfo(BaseModel):
     """Table information model."""
 
     name: str
-    schema: str
+    schema_name: str = Field(alias="schema")
     columns: list[ColumnInfo]
     comment: Optional[str] = None
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class IndexInfo(BaseModel):
@@ -74,9 +76,11 @@ class SchemaInfo(BaseModel):
     """Schema information model."""
 
     database: str
-    schema: str
+    schema_name: str = Field(alias="schema")
     tables: list[TableInfo]
-    views: list[str] = []
-    indexes: list[IndexInfo] = []
-    foreign_keys: list[ForeignKeyInfo] = []
-    enums: list[str] = []
+    views: list[str] = Field(default_factory=list)
+    indexes: list[IndexInfo] = Field(default_factory=list)
+    foreign_keys: list[ForeignKeyInfo] = Field(default_factory=list)
+    enums: list[str] = Field(default_factory=list)
+
+    model_config = ConfigDict(populate_by_name=True)

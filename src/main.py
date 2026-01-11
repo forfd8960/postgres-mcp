@@ -2,6 +2,7 @@
 """Main entry point for the pg-mcp server."""
 
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 from mcp.server.fastmcp import FastMCP
 
@@ -13,6 +14,9 @@ from src.services.sql_validator import SQLValidator
 from src.tools.schema import register_schema_tool
 from src.tools.explain import register_explain_tool
 from src.tools.query import register_query_tool
+
+
+logger = logging.getLogger("pg_mcp")
 
 
 @asynccontextmanager
@@ -82,6 +86,11 @@ def main() -> None:
     """Main entry point for the server."""
     import argparse
 
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
+    )
+
     parser = argparse.ArgumentParser(description="PostgreSQL MCP Server")
     parser.add_argument(
         "--dsn",
@@ -111,6 +120,8 @@ def main() -> None:
     if args.model:
         settings.openai_model = args.model
 
+    logger.info("Starting pg-mcp server initialization")
+
     # Run the MCP server
     asyncio.run(run_server(settings))
 
@@ -124,6 +135,7 @@ async def run_server(settings: Settings) -> None:
     mcp = FastMCP("pg-mcp")
 
     # Create services
+    logger.info("Initializing services (pool, schema, AI client, validator)")
     pool = await create_pool(
         dsn=settings.get_dsn(),
         ssl=settings.postgres_ssl
@@ -154,8 +166,10 @@ async def run_server(settings: Settings) -> None:
         settings=settings
     )
 
-    # Run the server
-    await mcp.run()
+    logger.info("pg-mcp server ready; starting stdio loop")
+
+    # Run the server inside existing event loop
+    await mcp.run_stdio_async()
 
 
 def _register_tools(

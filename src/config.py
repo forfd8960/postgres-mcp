@@ -34,7 +34,7 @@ class Settings(BaseSettings):
 
     # MCP configuration
     mcp_host: str = "0.0.0.0"
-    mcp_port: int = 8080
+    mcp_port: int = 8989
 
     class Config:
         env_prefix = "PG_MCP_"

@@ -56,7 +56,7 @@ class SchemaService:
 
         schema_info = SchemaInfo(
             database=database,
-            schema="public",
+            schema_name="public",
             tables=tables,
             indexes=indexes,
             foreign_keys=foreign_keys
@@ -123,7 +123,7 @@ class SchemaService:
             columns = await self._get_columns(conn, table_name, row["table_schema"])
             tables.append(TableInfo(
                 name=table_name,
-                schema=row["table_schema"],
+                schema_name=row["table_schema"],
                 columns=columns,
                 comment=row["comment"]
             ))
@@ -134,7 +134,7 @@ class SchemaService:
         self,
         conn: asyncpg.Connection,
         table_name: str,
-        schema: str
+        schema_name: str
     ) -> list[ColumnInfo]:
         """Get column information for a table.
 
@@ -157,12 +157,12 @@ class SchemaService:
             FROM information_schema.columns
             WHERE table_schema = $2 AND table_name = $1
             ORDER BY ordinal_position
-        """, table_name, schema)
+        """, table_name, schema_name)
 
         columns = []
         for row in rows:
             is_pk = await self._is_primary_key(
-                conn, table_name, schema, row["column_name"]
+                conn, table_name, schema_name, row["column_name"]
             )
             columns.append(ColumnInfo(
                 name=row["column_name"],
@@ -179,7 +179,7 @@ class SchemaService:
         self,
         conn: asyncpg.Connection,
         table_name: str,
-        schema: str,
+        schema_name: str,
         column_name: str
     ) -> bool:
         """Check if a column is a primary key.
@@ -201,7 +201,7 @@ class SchemaService:
                 AND tc.table_name = $2
                 AND tc.constraint_type = 'PRIMARY KEY'
                 AND ccu.column_name = $3
-        """, schema, table_name, column_name)
+        """, schema_name, table_name, column_name)
 
         return row is not None
 
