@@ -103,9 +103,15 @@ def main() -> None:
         help="OpenAI API Key"
     )
     parser.add_argument(
+        "--base-url",
+        type=str,
+        default="https://api.minimaxi.com/v1",
+        help="OpenAI API Base URL"
+    )
+    parser.add_argument(
         "--model",
         type=str,
-        default="gpt-4o-mini",
+        default="MiniMax-M2.1",
         help="OpenAI Model"
     )
 
@@ -117,6 +123,8 @@ def main() -> None:
         settings.postgres_dsn = args.dsn
     if args.api_key:
         settings.openai_api_key = args.api_key
+    if args.base_url:
+        settings.openai_base_url = args.base_url
     if args.model:
         settings.openai_model = args.model
 

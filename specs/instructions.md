@@ -17,3 +17,13 @@
 根据 ./specs/0003-pg-mcp-impl-plan.md 和 ./specs/0002-pg-mcp-design.md 文档，使用 sub agent 完整实现 pg-mcp phase 0-4。代码放在 当前目录下.
 
 根据 ./specs/0003-pg-mcp-impl-plan.md 和 ./specs/0002-pg-mcp-design.md 文档，使用 sub agent 完整实现 pg-mcp phase 5。代码放在 当前目录下.
+
+## Test Plan
+
+根据 ./specs/0003-pg-mcp-impl-plan.md 和 ./specs/0002-pg-mcp-design.md 文档，构建 pg-mcp 的测试计划，think ultra hard，文档放在 ./specs/0005-pg-mcp-test-plan.md 文件中。
+
+# Test
+
+根据 ./specs/0001-pg-mcp-prd.md 在 ./fixtures 下构建三个有意义的数据库，分别有少量，中等量级，以及大量的 table/view/types/index 等schema，且有足够多的数据。生成这三个数据库的 sql 文件，并构建 Makefile 来重建这些测试数据库。
+
+commit 然后你来建立和测试这几个数据库确保可用  
