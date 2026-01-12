@@ -27,3 +27,14 @@
 根据 ./specs/0001-pg-mcp-prd.md 在 ./fixtures 下构建三个有意义的数据库，分别有少量，中等量级，以及大量的 table/view/types/index 等schema，且有足够多的数据。生成这三个数据库的 sql 文件，并构建 Makefile 来重建这些测试数据库。
 
 commit 然后你来建立和测试这几个数据库确保可用  
+
+## Gen Test SQL
+
+根据 ./specs/0005-pg-mcp-test-plan.md 文 and ./specs/0002-pg-mcp-design.md 文档，生成 pg-mcp 的针对三个测试数据库(参考 ./fixtures/ 下的 SQL) 的自然语言查询示例，用于测试 PostgreSQL MCP 服务器的 SQL 生成能力。查询按难度级别（简单→中等→复杂→高级）组织。生成 内容写入 ./fixtures/TEST_QUERIES.md 文件，
+
+case 格式为:
+```markdown
+* case number: case name
+    自然语言：有多少用户？
+    期望 SQL：SELECT COUNT(*) FROM users;
+```
