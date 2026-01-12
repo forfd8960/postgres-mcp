@@ -7,7 +7,6 @@
 DB_HOST ?= localhost
 DB_PORT ?= 5432
 DB_USER ?= postgres
-DB_PASSWORD ?=
 
 # Database names
 DB_SMALL := db_pg_mcp_small
@@ -16,8 +15,6 @@ DB_LARGE := db_pg_mcp_large
 
 # PostgreSQL commands
 PSQL := psql -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER)
-DROP_DB := $(PSQL) -c "DROP DATABASE IF EXISTS"
-CREATE_DB := $(PSQL) -c "CREATE DATABASE"
 
 # SQL files
 SQL_SMALL := 01_small_database.sql
@@ -73,24 +70,24 @@ setup-all: setup-small setup-medium setup-large
 .PHONY: setup-small
 setup-small:
 	@echo "$(BLUE)Setting up small test database...$(NC)"
-	@$(DROP_DB) $(DB_SMALL) 2>/dev/null || true
-	@$(CREATE_DB) $(DB_SMALL)
+	@$(PSQL) -c "DROP DATABASE IF EXISTS $(DB_SMALL);"
+	@$(PSQL) -c "CREATE DATABASE $(DB_SMALL);"
 	@$(PSQL) -d $(DB_SMALL) -f $(SQL_SMALL)
 	@echo "$(GREEN)✓ Small database created: $(DB_SMALL)$(NC)"
 
 .PHONY: setup-medium
 setup-medium:
 	@echo "$(BLUE)Setting up medium test database...$(NC)"
-	@$(DROP_DB) $(DB_MEDIUM) 2>/dev/null || true
-	@$(CREATE_DB) $(DB_MEDIUM)
+	@$(PSQL) -c "DROP DATABASE IF EXISTS $(DB_MEDIUM);"
+	@$(PSQL) -c "CREATE DATABASE $(DB_MEDIUM);"
 	@$(PSQL) -d $(DB_MEDIUM) -f $(SQL_MEDIUM)
 	@echo "$(GREEN)✓ Medium database created: $(DB_MEDIUM)$(NC)"
 
 .PHONY: setup-large
 setup-large:
 	@echo "$(BLUE)Setting up large test database...$(NC)"
-	@$(DROP_DB) $(DB_LARGE) 2>/dev/null || true
-	@$(CREATE_DB) $(DB_LARGE)
+	@$(PSQL) -c "DROP DATABASE IF EXISTS $(DB_LARGE);"
+	@$(PSQL) -c "CREATE DATABASE $(DB_LARGE);"
 	@$(PSQL) -d $(DB_LARGE) -f $(SQL_LARGE)
 	@echo "$(GREEN)✓ Large database created: $(DB_LARGE)$(NC)"
 
@@ -106,19 +103,19 @@ drop-all: drop-small drop-medium drop-large
 .PHONY: drop-small
 drop-small:
 	@echo "$(YELLOW)Dropping small test database...$(NC)"
-	@$(DROP_DB) $(DB_SMALL) 2>/dev/null || true
+	@$(PSQL) -c "DROP DATABASE IF EXISTS $(DB_SMALL);"
 	@echo "$(GREEN)✓ Small database dropped$(NC)"
 
 .PHONY: drop-medium
 drop-medium:
 	@echo "$(YELLOW)Dropping medium test database...$(NC)"
-	@$(DROP_DB) $(DB_MEDIUM) 2>/dev/null || true
+	@$(PSQL) -c "DROP DATABASE IF EXISTS $(DB_MEDIUM);"
 	@echo "$(GREEN)✓ Medium database dropped$(NC)"
 
 .PHONY: drop-large
 drop-large:
 	@echo "$(YELLOW)Dropping large test database...$(NC)"
-	@$(DROP_DB) $(DB_LARGE) 2>/dev/null || true
+	@$(PSQL) -c "DROP DATABASE IF EXISTS $(DB_LARGE);"
 	@echo "$(GREEN)✓ Large database dropped$(NC)"
 
 # -----------------------------------------------------------------------------
@@ -152,7 +149,6 @@ verify-small:
 	@echo "$(BLUE)Verifying small database...$(NC)"
 	@echo "Tables:" && $(PSQL) -d $(DB_SMALL) -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'testbed'" | xargs
 	@echo "Views:" && $(PSQL) -d $(DB_SMALL) -t -c "SELECT COUNT(*) FROM information_schema.views WHERE table_schema = 'testbed'" | xargs
-	@echo "Types:" && $(PSQL) -d $(DB_SMALL) -t -c "SELECT COUNT(*) FROM pg_type WHERE typnamespace IN (SELECT oid FROM pg_namespace WHERE nspname = 'testbed')" | xargs
 	@echo "Users:" && $(PSQL) -d $(DB_SMALL) -t -c "SELECT COUNT(*) FROM testbed.users" | xargs
 	@echo "Products:" && $(PSQL) -d $(DB_SMALL) -t -c "SELECT COUNT(*) FROM testbed.products" | xargs
 	@echo "Orders:" && $(PSQL) -d $(DB_SMALL) -t -c "SELECT COUNT(*) FROM testbed.orders" | xargs
@@ -163,7 +159,7 @@ verify-medium:
 	@echo "$(BLUE)Verifying medium database...$(NC)"
 	@echo "Tables:" && $(PSQL) -d $(DB_MEDIUM) -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog', 'information_schema')" | xargs
 	@echo "Views:" && $(PSQL) -d $(DB_MEDIUM) -t -c "SELECT COUNT(*) FROM information_schema.views WHERE table_schema NOT IN ('pg_catalog', 'information_schema')" | xargs
-	@echo "Users:" && $(PSQL) -d $(DB_MEDIUM) -t -c "SELECT COUNT(*) FROM sales.customers" | xargs
+	@echo "Customers:" && $(PSQL) -d $(DB_MEDIUM) -t -c "SELECT COUNT(*) FROM sales.customers" | xargs
 	@echo "Products:" && $(PSQL) -d $(DB_MEDIUM) -t -c "SELECT COUNT(*) FROM sales.products" | xargs
 	@echo "Orders:" && $(PSQL) -d $(DB_MEDIUM) -t -c "SELECT COUNT(*) FROM sales.orders" | xargs
 	@echo "Warehouses:" && $(PSQL) -d $(DB_MEDIUM) -t -c "SELECT COUNT(*) FROM inventory.warehouses" | xargs
@@ -176,7 +172,6 @@ verify-large:
 	@echo "Tables:" && $(PSQL) -d $(DB_LARGE) -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog', 'information_schema')" | xargs
 	@echo "Views:" && $(PSQL) -d $(DB_LARGE) -t -c "SELECT COUNT(*) FROM information_schema.views WHERE table_schema NOT IN ('pg_catalog', 'information_schema')" | xargs
 	@echo "Indexes:" && $(PSQL) -d $(DB_LARGE) -t -c "SELECT COUNT(*) FROM pg_indexes WHERE schemaname NOT IN ('pg_catalog', 'information_schema')" | xargs
-	@echo "Triggers:" && $(PSQL) -d $(DB_LARGE) -t -c "SELECT COUNT(*) FROM pg_triggers WHERE schemaname NOT IN ('pg_catalog', 'information_schema')" | xargs
 	@echo "Users:" && $(PSQL) -d $(DB_LARGE) -t -c "SELECT COUNT(*) FROM accounts.users" | xargs
 	@echo "Products:" && $(PSQL) -d $(DB_LARGE) -t -c "SELECT COUNT(*) FROM catalog.products" | xargs
 	@echo "Categories:" && $(PSQL) -d $(DB_LARGE) -t -c "SELECT COUNT(*) FROM catalog.categories" | xargs
@@ -221,7 +216,6 @@ stats:
 		SELECT 'Tables' AS entity, COUNT(*) AS count FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
 		UNION ALL SELECT 'Views', COUNT(*) FROM information_schema.views WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
 		UNION ALL SELECT 'Indexes', COUNT(*) FROM pg_indexes WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
-		UNION ALL SELECT 'Triggers', COUNT(*) FROM pg_triggers WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
 		UNION ALL SELECT 'Users', COUNT(*) FROM accounts.users
 		UNION ALL SELECT 'Products', COUNT(*) FROM catalog.products
 		UNION ALL SELECT 'Categories', COUNT(*) FROM catalog.categories
