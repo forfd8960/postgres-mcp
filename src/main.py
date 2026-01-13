@@ -95,6 +95,7 @@ def main() -> None:
     parser.add_argument(
         "--dsn",
         type=str,
+        default="postgresql://postgres:postgres@localhost:5432/db_pg_mcp_small",
         help="Database DSN"
     )
     parser.add_argument(
@@ -142,6 +143,8 @@ async def run_server(settings: Settings) -> None:
     """
     mcp = FastMCP("pg-mcp")
 
+    logger.info("settings: %s", settings.model_dump())
+
     # Create services
     logger.info("Initializing services (pool, schema, AI client, validator)")
     pool = await create_pool(
@@ -174,10 +177,10 @@ async def run_server(settings: Settings) -> None:
         settings=settings
     )
 
-    logger.info("pg-mcp server ready; starting stdio loop")
+    logger.info("pg-mcp server ready; starting event loop")
 
     # Run the server inside existing event loop
-    await mcp.run_stdio_async()
+    await mcp.run_sse_async()
 
 
 def _register_tools(

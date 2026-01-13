@@ -76,7 +76,7 @@ class SchemaInfo(BaseModel):
     """Schema information model."""
 
     database: str
-    schema_name: str = Field(alias="schema")
+    schemas: list[str] = Field(default_factory=list)
     tables: list[TableInfo]
     views: list[str] = Field(default_factory=list)
     indexes: list[IndexInfo] = Field(default_factory=list)

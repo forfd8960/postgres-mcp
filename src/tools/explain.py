@@ -39,8 +39,10 @@ def register_explain_tool(
             Dictionary containing the SQL statement, explanation, and analysis.
         """
         try:
+            # Use provided database or default
+            db = database or "default"
             # Get schema information
-            schema_info = await schema_service.get_schema_info()
+            schema_info = await schema_service.get_schema_info(database=db)
             schema_text = schema_service.format_schema_for_ai(schema_info)
 
             # Generate SQL

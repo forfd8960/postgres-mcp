@@ -1,9 +1,12 @@
 # src/services/ai_client.py
 """AI client services for SQL generation and validation."""
+import logging
+import re
 
 from openai import AsyncOpenAI
 from typing import Optional
 
+logger = logging.getLogger("ai-client")
 
 # System prompt for SQL generation
 SQL_GENERATION_PROMPT = """你是一个 PostgreSQL 专家。用户想要查询数据库。
@@ -14,7 +17,7 @@ SQL_GENERATION_PROMPT = """你是一个 PostgreSQL 专家。用户想要查询�
 用户的查询需求: {user_query}
 
 请生成对应的 PostgreSQL SELECT 语句。只返回 SQL 代码，不要其他解释。
-如果无法生成有效的查询，返回 "ERROR: {原因}"。
+如果无法生成有效的查询，返回 "ERROR: generate SQL failed"。
 
 约束:
 - 只使用 SELECT 语句
@@ -53,6 +56,8 @@ class AIClient:
             base_url: Optional base URL for OpenAI-compatible APIs.
             timeout: Request timeout in seconds.
         """
+        logger.info("Initializing AIClient with model: %s, base_url: %s", model, base_url)
+
         self.client = AsyncOpenAI(
             api_key=api_key,
             base_url=base_url
@@ -76,6 +81,9 @@ class AIClient:
         Returns:
             The generated SQL statement or an error message.
         """
+
+        logger.info("Generating SQL for user query: %s", user_query)
+
         if system_prompt is None:
             system_prompt = SQL_GENERATION_PROMPT.format(
                 schema_info=schema_info,
@@ -93,10 +101,30 @@ class AIClient:
                 timeout=self.timeout
             )
 
-            content = response.choices[0].message.content
-            return content.strip()
+            content = response.choices[0].message.content or ""
+            sql = self._extract_sql(content)
+            return sql
         except Exception as e:
-            return f"ERROR: AI 服务调用失败 - {str(e)}"
+            logger.error("AI SQL generation failed: %s", str(e))
+            return "ERROR: generate SQL failed"
+
+    def _extract_sql(self, content: str) -> str:
+        """Extract SQL from LLM responses that may contain reasoning text.
+
+        Prefers fenced ```sql blocks, then generic ``` blocks, then returns
+        stripped content without <think> sections.
+        """
+        cleaned = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL)
+
+        match = re.search(r"```sql\s*(.*?)```", cleaned, flags=re.DOTALL | re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+
+        match = re.search(r"```\s*(.*?)```", cleaned, flags=re.DOTALL)
+        if match:
+            return match.group(1).strip()
+
+        return cleaned.strip()
 
     async def validate_result(
         self,

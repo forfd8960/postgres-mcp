@@ -29,7 +29,10 @@ async def create_pool(
         min_size=min_size,
         max_size=max_size,
         ssl=ssl if ssl else None,
-        command_timeout=timeout
+        command_timeout=timeout,
+        server_settings={
+            "search_path": "testbed,public"
+        }
     )
     return pool
 

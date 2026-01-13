@@ -38,3 +38,9 @@ case 格式为:
     自然语言：有多少用户？
     期望 SQL：SELECT COUNT(*) FROM users;
 ```
+
+## Run Test
+
+对于 postgres-mcp，将这个 mcp 添加到 claude code 中，打开一个 claude code headless cli 选择 ./fixtures/TEST_QUERIES.md 下面的某些 query，运行，查看是否调用这个 mcp，结果是否符合预期
+
+直接用本地的 `uvx --from . python -m src.main` 来运行 mcp server

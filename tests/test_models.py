@@ -162,7 +162,7 @@ class TestSchemaModels:
         table = TableInfo(name="users", schema="public", columns=[col])
         schema = SchemaInfo(
             database="mydb",
-            schema="public",
+            schemas=["public", "custom"],
             tables=[table],
             views=["user_view"],
             indexes=[],
@@ -170,6 +170,9 @@ class TestSchemaModels:
             enums=["user_status"]
         )
         assert schema.database == "mydb"
+        assert len(schema.schemas) == 2
+        assert "public" in schema.schemas
+        assert "custom" in schema.schemas
         assert len(schema.tables) == 1
         assert "user_view" in schema.views
         assert "user_status" in schema.enums

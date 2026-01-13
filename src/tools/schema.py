@@ -57,7 +57,7 @@ def register_schema_tool(
                 "status": "success",
                 "cached": schema_service._cache_time is not None,
                 "database": schema_info.database,
-                "schema": schema_info.schema_name,
+                "schemas": schema_info.schemas,
                 "tables": tables_summary,
                 "tables_count": len(tables_summary)
             }

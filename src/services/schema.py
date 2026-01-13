@@ -2,6 +2,7 @@
 """Schema collection and management services."""
 
 import re
+import logging
 from datetime import datetime, timedelta
 from typing import Optional
 import asyncpg
@@ -14,11 +15,12 @@ from src.models.schema import (
     ForeignKeyInfo,
 )
 
+logger = logging.getLogger("schema-service")
 
 class SchemaService:
     """Schema information service with caching."""
 
-    def __init__(self, pool: asyncpg.Pool, cache_ttl: int = 3600):
+    def __init__(self, pool: asyncpg.Pool, cache_ttl: int = 60):
         """Initialize the schema service.
 
         Args:
@@ -44,23 +46,38 @@ class SchemaService:
         Returns:
             The schema information.
         """
-        # Check cache validity
+        # Check cache validity for specific database
         if not force_refresh and self._is_cache_valid():
-            return self._cache.get(database, self._cache.get("default"))
+            cached = self._cache.get(database)
+            if cached:
+                return cached
+            # Fall back to default database cache
+            default_cache = self._cache.get("default")
+            if default_cache:
+                return default_cache
 
         # Load from database
-        async with self.pool.acquire() as conn:
-            tables = await self._get_tables(conn)
-            indexes = await self._get_indexes(conn)
-            foreign_keys = await self._get_foreign_keys(conn)
+        try:
+            async with self.pool.acquire() as conn:
+                schemas = await self._get_schemas(conn)
+                tables = await self._get_tables(conn)
+                indexes = await self._get_indexes(conn)
+                foreign_keys = await self._get_foreign_keys(conn)
+        except Exception as e:
+            # Clear cache on error (e.g., table no longer exists)
+            self.clear_cache()
+            logger.warning("Schema fetch failed, cache cleared: %s", e)
+            raise
 
         schema_info = SchemaInfo(
             database=database,
-            schema_name="public",
+            schemas=schemas,
             tables=tables,
             indexes=indexes,
             foreign_keys=foreign_keys
         )
+
+        logger.info("Fetched schema info from database '%s': %s", database, schema_info.model_dump())
 
         # Update cache
         self._cache[database] = schema_info
@@ -78,20 +95,30 @@ class SchemaService:
             A formatted string representation.
         """
         lines = []
-
+        # Group tables by schema
+        schema_tables: dict[str, list] = {}
         for table in schema_info.tables:
-            columns = []
-            for col in table.columns:
-                col_desc = f"  - {col.name}: {col.data_type}"
-                if col.is_nullable:
-                    col_desc += " (nullable)"
-                if col.is_primary_key:
-                    col_desc += " (primary key)"
-                columns.append(col_desc)
+            schema = table.schema_name
+            if schema not in schema_tables:
+                schema_tables[schema] = []
+            schema_tables[schema].append(table)
 
-            lines.append(f"表 {table.name}:")
-            lines.extend(columns)
-            lines.append("")
+        for schema_name, tables in schema_tables.items():
+            if schema_name != "public":
+                lines.append(f"Schema: {schema_name}")
+            for table in tables:
+                columns = []
+                for col in table.columns:
+                    col_desc = f"  - {col.name}: {col.data_type}"
+                    if col.is_nullable:
+                        col_desc += " (nullable)"
+                    if col.is_primary_key:
+                        col_desc += " (primary key)"
+                    columns.append(col_desc)
+
+                lines.append(f"表 {table.name}:")
+                lines.extend(columns)
+                lines.append("")
 
         return "\n".join(lines)
 
@@ -114,7 +141,8 @@ class SchemaService:
                 ) as comment
             FROM information_schema.tables t
             WHERE t.table_schema NOT IN ('pg_catalog', 'information_schema')
-            ORDER BY t.table_name
+                AND t.table_type = 'BASE TABLE'
+            ORDER BY t.table_schema, t.table_name
         """)
 
         tables = []
@@ -129,6 +157,23 @@ class SchemaService:
             ))
 
         return tables
+
+    async def _get_schemas(self, conn: asyncpg.Connection) -> list[str]:
+        """Get all schema names from the database.
+
+        Args:
+            conn: The database connection.
+
+        Returns:
+            A list of schema names.
+        """
+        rows = await conn.fetch("""
+            SELECT schema_name
+            FROM information_schema.schemata
+            WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
+            ORDER BY schema_name
+        """)
+        return [row["schema_name"] for row in rows]
 
     async def _get_columns(
         self,

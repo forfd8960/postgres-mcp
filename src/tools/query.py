@@ -1,6 +1,8 @@
 # src/tools/query.py
 """MCP query tool implementation."""
 
+import logging
+
 from mcp.server.fastmcp import FastMCP
 from src.services.schema import SchemaService
 from src.services.ai_client import AIClient
@@ -9,6 +11,8 @@ from src.models.query import SqlModeResponse, ResultModeResponse
 from typing import Optional
 import asyncpg
 from datetime import datetime
+
+logger = logging.getLogger("tools-query")
 
 
 def register_query_tool(
@@ -54,12 +58,16 @@ def register_query_tool(
         start_time = datetime.utcnow()
 
         try:
+            # Use provided database or default
+            db = database or "default"
             # Step 1: Get schema information
-            schema_info = await schema_service.get_schema_info()
+            schema_info = await schema_service.get_schema_info(force_refresh=True, database=db)
             schema_text = schema_service.format_schema_for_ai(schema_info)
 
             # Step 2: Use AI to generate SQL
             sql = await ai_client.generate_sql(schema_text, query)
+
+            logger.info("Generated SQL:\n%s", sql)
 
             # Step 3: Check for AI errors
             if sql.startswith("ERROR:"):
@@ -97,7 +105,8 @@ def register_query_tool(
                 user_query=query,
                 max_rows=max_rows,
                 timeout=timeout,
-                start_time=start_time
+                start_time=start_time,
+                database=db
             )
 
         except Exception as e:
@@ -116,7 +125,8 @@ async def _execute_and_validate(
     user_query: str,
     max_rows: int,
     timeout: int,
-    start_time: datetime
+    start_time: datetime,
+    database: str = "default"
 ) -> dict:
     """Execute query and validate results.
 
@@ -128,6 +138,7 @@ async def _execute_and_validate(
         max_rows: Maximum number of rows to return.
         timeout: Query timeout in seconds.
         start_time: Query start time.
+        database: Target database name.
 
     Returns:
         Query result response.

@@ -1,0 +1,17 @@
+{
+	"servers": {
+		"pg-mcp": {
+			"type": "stdio",
+			"command": "uvx",
+			"args": [
+				"--refresh",
+				"--from",
+				".",
+				"python",
+				"-m",
+				"src.main"
+			]
+		}
+	},
+	"inputs": []
+}

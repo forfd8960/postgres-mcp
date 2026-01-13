@@ -32,6 +32,8 @@ class SQLValidator:
         r"\bGRANT\b",
         r"\bREVOKE\b",
         r"\bEXECUTE\b",
+        r"\bCONNECT\b",  # Prevent cross-database attempts
+        r"\bUSE\b",       # MySQL-style database switching
         r"\bWITH\s+.*\bDROP\b",  # CTE injection prevention
     ]
 
@@ -61,7 +63,13 @@ class SQLValidator:
         # Step 1: Remove comments
         cleaned_sql = self._remove_comments(sql)
 
-        # Step 2: Basic syntax check + single statement constraint
+        # Step 2: Regex pattern check (must be BEFORE sqlglot parsing)
+        # Some patterns like CONNECT may cause sqlglot to behave unexpectedly
+        for pattern in self._compiled_patterns:
+            if pattern.search(cleaned_sql):
+                return False, "检测到禁止的关键词"
+
+        # Step 3: Basic syntax check + single statement constraint
         try:
             statements = sqlglot.parse(cleaned_sql, read="postgres")
         except ParseError as e:
@@ -72,15 +80,10 @@ class SQLValidator:
 
         parsed = statements[0]
 
-        # Step 3: Check statement type
+        # Step 4: Check statement type
         statement_type = type(parsed).__name__.upper()
         if statement_type not in self.allowed_statements:
             return False, f"不允许的语句类型: {statement_type}"
-
-        # Step 4: Regex pattern check
-        for pattern in self._compiled_patterns:
-            if pattern.search(cleaned_sql):
-                return False, "检测到禁止的关键词"
 
         # Step 5: System table/schema blocking
         tables = {t.name for t in parsed.find_all(sqlglot.exp.Table)}
