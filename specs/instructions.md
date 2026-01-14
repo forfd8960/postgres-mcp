@@ -54,3 +54,11 @@ case 格式为:
 - 3. 使用 psql 测试这个 SQL 确保它能够执行并且返回有意义的结果。如果执行失败，则深度思考，重新生成 SQL，回到第 3 步。
 - 4. 把用户的输入生成的 SQL，以及返回的结果的一部分进行分析来确认结果是不是有意义，根据分析打个分数。10分非常 confident，0分非常不 confident。如果小于 7 分，则深度思考，重新生成 SQL，回到第 3 步。
 - 5. 最后根据用户的输入是返回 SQL 还是返回 SQL 查询之后的结果（默认）来返回相应的内容
+
+## New Features
+
+- Although multi-database and security control features were promised in the design, they have not actually been enabled: the server always uses a single executor and cannot enforce table/column access restrictions or EXPLAIN policies, which may lead to requests accessing the wrong database, and sensitive objects cannot be protected. 
+- Resilience and observability modules (such as rate limiting, retry/backoff mechanisms, metrics/tracing systems) remain only at the design level and have not yet been integrated into the actual request processing workflow. 
+- Response/model defects (duplicate to_dict methods, unused configuration fields) and insufficient test coverage have caused the current system behavior to deviate from the implementation plan and made effective verification difficult.
+
+update design and implementation markdown to cover these features, and then implement them step by step.
