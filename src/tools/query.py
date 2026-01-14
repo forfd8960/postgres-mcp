@@ -79,7 +79,7 @@ def register_query_tool(
                 ).model_dump()
 
             # Step 4: Validate SQL security
-            is_valid, error_msg = validator.validate(sql)
+            is_valid, error_msg, details = validator.validate(sql)
             if not is_valid:
                 return SqlModeResponse(
                     status="error",

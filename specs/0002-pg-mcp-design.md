@@ -1,7 +1,8 @@
 # Postgres MCP Server 技术设计文档
 
-**文档版本**: v1.0
+**文档版本**: v1.1
 **创建日期**: 2026-01-11
+**更新日期**: 2026-01-14
 **文档编号**: 0002-pg-mcp-design
 **基于 PRD**: 0001-pg-mcp-prd.md
 
@@ -20,6 +21,7 @@
 | AI 集成 | OpenAI SDK | latest | LLM API 调用 |
 | 异步运行时 | asyncio | Python 3.10+ | 异步任务调度 |
 | 配置管理 | pydantic-settings | latest | 环境变量配置 |
+| 可观测性 | OpenTelemetry | latest | 指标与追踪 |
 
 ### 1.2 系统架构图
 

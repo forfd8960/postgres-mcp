@@ -56,7 +56,7 @@ def register_explain_tool(
                 }
 
             # Validate SQL
-            is_valid, error_msg = validator.validate(sql)
+            is_valid, error_msg, _ = validator.validate(sql)
 
             # Extract involved tables
             tables = validator.extract_tables(sql)

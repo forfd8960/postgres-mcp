@@ -14,12 +14,6 @@ def pytest_configure(config):
     )
 
 
-# Asyncio configuration (for pytest-asyncio)
-def pytest_asyncio_configure(config):
-    """Configure pytest-asyncio."""
-    config.async_mode = "auto"
-
-
 # Pytest.ini style options (additional configuration)
 @pytest.fixture(scope="session")
 def anyio_backend():

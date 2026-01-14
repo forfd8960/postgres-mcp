@@ -1,7 +1,8 @@
 # Postgres MCP Server 实现计划
 
-**文档版本**: v1.0
+**文档版本**: v1.1
 **创建日期**: 2026-01-11
+**更新日期**: 2026-01-14
 **文档编号**: 0003-pg-mcp-impl-plan
 **基于设计文档**: 0002-pg-mcp-design.md
 
@@ -1309,7 +1310,185 @@ Day 5 - 全天 (8h)
 
 ---
 
-## 12. 附录: 开发环境快速启动
+## 12. 增强功能实现 (v1.1 更新)
+
+### 12.1 多数据库支持
+
+**新增服务**: `src/services/multi_db.py`
+
+```python
+class MultiDatabaseManager:
+    """多数据库连接池管理器"""
+
+    def configure_default(self, dsn: str, ssl: bool = False):
+        """配置默认数据库"""
+
+    def add_database(self, config: DatabaseConfig):
+        """添加数据库配置"""
+
+    async def get_pool(self, database: Optional[str] = None) -> asyncpg.Pool:
+        """获取指定数据库的连接池"""
+
+    async def test_connection(self, database: Optional[str] = None) -> Dict[str, Any]:
+        """测试数据库连接"""
+
+    async def close(self, database: Optional[str] = None):
+        """关闭连接池"""
+```
+
+**配置示例**:
+```bash
+export PG_MCP_DATABASES='[
+  {"name": "default", "dsn": "postgresql://localhost:5432/maindb"},
+  {"name": "analytics", "dsn": "postgresql://localhost:5432/analytics", "pool_max": 20}
+]'
+```
+
+### 12.2 访问控制
+
+**增强**: `src/services/sql_validator.py`
+
+```python
+class SQLValidator:
+    def __init__(
+        self,
+        allowed_statements: Optional[Set[str]] = None,
+        blocked_tables: Optional[Set[str]] = None,
+        blocked_columns: Optional[Dict[str, Set[str]]] = None,
+        allowed_tables: Optional[Set[str]] = None,
+        allowed_columns: Optional[Dict[str, Set[str]]] = None
+    ):
+        """支持表级和列级访问控制"""
+
+    def validate(self, sql: str) -> tuple[bool, Optional[str], Optional[dict]]:
+        """返回 (是否通过, 错误信息, 详细信息)"""
+
+    def set_blocked_tables(self, tables: Set[str]):
+        """运行时更新阻塞表"""
+
+    def set_allowed_columns(self, columns: Dict[str, Set[str]]):
+        """运行时更新允许列"""
+```
+
+**配置示例**:
+```bash
+export PG_MCP_ENABLE_ACCESS_CONTROL=true
+export PG_MCP_BLOCKED_TABLES='["users", "passwords", "credentials"]'
+export PG_MCP_BLOCKED_COLUMNS='{"users": ["password", "ssn", "credit_card"]}'
+```
+
+### 12.3 限流服务
+
+**新增服务**: `src/services/rate_limiter.py`
+
+```python
+class SlidingWindowRateLimiter:
+    """滑动窗口限流器"""
+
+    def __init__(self, max_requests: int = 100, window_seconds: int = 60):
+        ...
+
+    def is_allowed(self, client_id: str) -> RateLimitResult:
+        ...
+
+    def get_stats(self, client_id: str) -> Dict[str, Any]:
+        ...
+
+class TokenBucketRateLimiter:
+    """令牌桶限流器 (支持突发流量)"""
+
+    def __init__(self, rate_per_second: float = 10.0, max_burst: int = 100):
+        ...
+```
+
+**配置示例**:
+```bash
+export PG_MCP_RATE_LIMIT_ENABLED=true
+export PG_MCP_RATE_LIMIT_REQUESTS=100
+export PG_MCP_RATE_LIMIT_WINDOW=60
+```
+
+### 12.4 弹性机制
+
+**新增服务**: `src/services/resilience.py`
+
+```python
+class CircuitBreaker:
+    """熔断器 - 防止级联故障"""
+
+    def __init__(self, name: str, config: Optional[CircuitBreakerConfig] = None):
+        ...
+
+    @property
+    def state(self) -> CircuitState:
+        """CLOSED | OPEN | HALF_OPEN"""
+
+@with_retry(
+    max_attempts=3,
+    base_delay=1.0,
+    max_delay=60.0,
+    multiplier=2.0,
+    jitter=True
+)
+async def unreliable_operation():
+    """带重试的函数"""
+    ...
+
+@with_timeout(seconds=30)
+async def timed_operation():
+    """带超时的函数"""
+    ...
+```
+
+### 12.5 可观测性
+
+**新增服务**: `src/services/metrics.py`
+
+```python
+class MetricsCollector:
+    """指标收集器"""
+
+    def record_request(
+        self,
+        operation: str,
+        success: bool,
+        duration_ms: float,
+        error_type: Optional[str] = None
+    ):
+        ...
+
+    def get_operation_summary(self, operation: str) -> Optional[MetricSummary]:
+        ...
+
+    def get_global_summary(self) -> MetricSummary:
+        ...
+
+    def export_json(self) -> str:
+        ...
+
+class TracingService:
+    """追踪服务"""
+
+    @contextmanager
+    def trace_operation(self, operation: str, **context):
+        """追踪操作上下文管理器"""
+        ...
+
+# 使用示例
+with trace_operation("query", database="default") as trace_id:
+    result = await execute_query(...)
+    # 自动记录指标和追踪
+```
+
+**配置示例**:
+```bash
+export PG_MCP_METRICS_ENABLED=true
+export PG_MCP_TRACING_ENABLED=false
+```
+
+---
+
+## 13. 附录: 开发环境快速启动
 
 ```bash
 # 1. 克隆并进入项目
