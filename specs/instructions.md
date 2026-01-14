@@ -44,3 +44,13 @@ case 格式为:
 对于 postgres-mcp，将这个 mcp 添加到 claude code 中，打开一个 claude code headless cli 选择 ./fixtures/TEST_QUERIES.md 下面的某些 query，运行，查看是否调用这个 mcp，结果是否符合预期
 
 直接用本地的 `uvx --from . python -m src.main` 来运行 mcp server
+
+## Build Skills
+
+在当前项目下创建一个新的 skill，要求：
+
+- 1. 首先通过 psql (localhost:5432, postgres, postgres) 探索这几个数据库：db_pg_mcp_small、db_pg_mcp_medium、db_pg_mcp_large，了解它们都有哪些 table/view/types/index 等等，每个数据库生成一个 md 文件，作为 skill 的 reference。
+- 2. 用户可以给特定自然语言描述的查询的需求，skill 根据用户输入找到相应的数据库的 reference 文件，然后根据这些信息以及用户的输入来生成正确的 SQL。SQL只允许查询语句，不能有任何的写操作，不能有任何安全漏洞比如 SQL 注入，不能有任何危险的操作比如 sleep，不能有任何的敏感信息比如 API Key 等。
+- 3. 使用 psql 测试这个 SQL 确保它能够执行并且返回有意义的结果。如果执行失败，则深度思考，重新生成 SQL，回到第 3 步。
+- 4. 把用户的输入生成的 SQL，以及返回的结果的一部分进行分析来确认结果是不是有意义，根据分析打个分数。10分非常 confident，0分非常不 confident。如果小于 7 分，则深度思考，重新生成 SQL，回到第 3 步。
+- 5. 最后根据用户的输入是返回 SQL 还是返回 SQL 查询之后的结果（默认）来返回相应的内容
